@@ -16,5 +16,13 @@ def test_addition_floats():
     assert add(1.5, 2.5) == 4.0
 
 
-def test_this_should_be_wrong():
-    assert add(2, 2) == 1
+def test_addition_floats():
+    assert add(1.5, 2.5) == 4.0
+
+
+def test_addition_floats():
+    assert add(1.5, 2.5) == 4.0
+
+
+def test_addition_floats():
+    assert add(1.5, 2.5) == 4.0
