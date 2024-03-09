@@ -1,6 +1,6 @@
 # Import necessary modules and functions
 import pytest
-from ..imstat import add
+from ..deformable.imstat import add
 
 
 # Define test functions
