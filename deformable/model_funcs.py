@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from math import pi
 
 
 def initial_model(
@@ -28,12 +29,11 @@ def initial_model(
     return model
 
 
-def boundary(model: tf.Tensor, n_dilations=1) -> tf.Tensor:
+def dilate(model: tf.Tensor, n_dilations=1) -> tf.Tensor:
     """
-    Extract the boundary of a model
+    Dilate a tensorflow image model
     """
-    # Perform binary dilation using TensorFlow's dilation2d function
-    dilated_img = tf.nn.dilation2d(
+    dilated_model = tf.nn.dilation2d(
         input=model,
         filters=tf.ones((3, 3, 1), dtype=tf.float32),
         strides=[1, 1, 1, 1],
@@ -42,8 +42,18 @@ def boundary(model: tf.Tensor, n_dilations=1) -> tf.Tensor:
         data_format="NHWC",
     )
 
+    return dilated_model
+
+
+def boundary(model: tf.Tensor, n_dilations=1) -> tf.Tensor:
+    """
+    Extract the boundary of a model
+    """
+    # Perform binary dilation using TensorFlow's dilation2d function
+    dilated_model = dilate(model=model, n_dilations=n_dilations)
+
     # Subtract original image from dilated image
-    result = dilated_img - model
+    result = dilated_model - model
     return result
 
 
@@ -52,6 +62,41 @@ def volume(model: tf.Tensor) -> tf.Tensor:
     Calculate volume of a model
     """
     return tf.reduce_sum(model)
+
+
+def prob_density(model: tf.Tensor, image: tf.Tensor, sigma: float) -> tf.Tensor:
+    """
+    Calculate the probability density for
+    a given model,
+
+    Point probability for intensity, i, is given by:
+    P(i|model) = exp[ -( (i-model)**2  ) / (2*sigma**2) ]
+
+    Parameters:
+    -----------
+    model: tf.Tensor,
+    image: tf.Tensor,
+    sigma: float
+    """
+    # Normalisation constants
+    area = tf.reduce_prod(tf.shape(model))
+    int_constant = tf.pow(tf.constant(2 * pi * tf.pow(sigma, 2)), -0.5)
+    norm_constant = tf.math.divide(area, int_constant)
+
+    # Calculate images
+    new_shape = (256, model.shape[1], model.shape[2], 1)
+    broadcasted_model = tf.broadcast_to(model, shape=new_shape)
+
+    # Tensor of intensities
+    # Generate intensity tensor
+    intensities = tf.range(256, dtype=float)
+
+    # Expand dimensions to match image_tensor shape
+    intensities = tf.expand_dims(intensities, axis=(1, 2, 3))
+
+    # substract intensity i from image
+    tilde_image = tf.subtract(intensities, broadcasted_model)
+    return None
 
 
 if __name__ == "__main__":

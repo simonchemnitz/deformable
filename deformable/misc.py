@@ -78,3 +78,21 @@ def tf_img2_np(img: tf.Tensor) -> np.ndarray:
     to a numpy array image
     """
     return img.numpy()[0, :, :, 0]
+
+
+def tf_expand_img(image: tf.Tensor) -> tf.Tensor:
+    """
+    Expand an image of shape (height, width)
+    to (1,height, width, 1), so tf functions can
+    be applied
+
+    Parameters:
+    -----------
+    image: tf.Tensor
+        Tensorflow tensor image, shape=(height, width)
+
+    Returns:
+    --------
+    tf_img: tf.Tensor
+        Tensorflow tensor image, shape=(1,height, width,1)
+    """
