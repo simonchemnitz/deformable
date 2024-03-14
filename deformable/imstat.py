@@ -129,7 +129,7 @@ def bspline(u: tf.Tensor) -> tf.Tensor:
 def region_point_pdf(region: np.ndarray, intensity_i: int, sigma: float) -> float:
     """
     Calculate phi point probability for a given intensity i:
-    P(i|\Phi_M)
+    P(i|Phi_M)
 
     Parameters:
     -----------
@@ -180,36 +180,6 @@ def region_intensity_pdf(region: np.ndarray, sigma: float) -> np.ndarray[float]:
         region_point_pdf(region=region, sigma=sigma, intensity_i=i) for i in range(255)
     ]
     return pdf
-
-
-def initial_model(
-    image_shape: tuple[int], centerpoint: list[int], width: int
-) -> np.ndarray:
-    """
-    Create a square region as initial model
-
-    Parameters:
-    -----------
-
-
-    Returns:
-    --------
-    model: np.ndarray
-        Binary model
-    """
-    assert width % 2 == 1, "Width needs to be odd"
-
-    x, y = centerpoint
-
-    model = np.zeros(shape=image_shape)
-
-    model[y - width : y + width + 1, x - width : x + width + 1] = 1
-
-    return model
-
-
-def add(x, y):
-    return x + y
 
 
 if __name__ == "__main__":

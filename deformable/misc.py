@@ -2,78 +2,24 @@ import numpy as np
 import tensorflow as tf
 
 
-def numpy_mesh_region(x: int, y: int, pm: int) -> np.ndarray:
+def bspline(u: tf.Tensor) -> tf.Tensor:
     """
-    Create a numpy mesh region
-    """
-    # Region indices
-    xmesh = np.arange(start=x - pm, stop=x + pm + 1, dtype=int)
-    ymesh = np.arange(start=y - pm, stop=y + pm + 1, dtype=int)
-    # Create a meshgrid of all combinations
-    xx, yy = np.meshgrid(xmesh, ymesh)
-    region = np.vstack((xx.ravel(), yy.ravel())).T
-
-    return region
-
-
-def setdiff2d_idx(arr1: np.ndarray, arr2: np.ndarray) -> np.ndarray:
-    """
-    2d version of np.setdiff1d
-    """
-    delta = set(map(tuple, arr2))
-    idx = [tuple(x) not in delta for x in arr1]
-    return arr1[idx]
-
-
-def create_square_region(
-    image: np.ndarray, centerpoint: list[int], width: int
-) -> np.ndarray:
-    """
-    Create a square boundary region given centerpoint and width
-
+    Calculate bspline for a tensor
     Parameters:
     -----------
-    centerpoint: list[int]
-        x,y index coordinates of the center point
-
-    width: int
-        Odd integer denoting the width of the square
+    u: tf.Tensor
+        Input tensor
 
     Returns:
     --------
-    sq_region: np.ndarray
-        Square region
-
-    sq_boundary: np.ndarray
-        Boundary of the square region
-
-    image_region: np.ndarray
-        Image values in region
+    b: tf.Tensor
+        Output tensor of bspline values
     """
-    # Deprecated
-    assert width % 2 == 1, f"Width is not odd: {width}"
-    # Value to add subtract:
-    pm = (width - 1) / 2
-
-    # xy coordinations
-    x, y = centerpoint
-
-    # Boundary values
-    x1 = int(x - pm)
-    x2 = int(x + pm)
-    y1 = int(y - pm)
-    y2 = int(y + pm)
-
-    # Region and boundary indices
-    region = numpy_mesh_region(x=x, y=y, pm=pm)
-    region_boundary = numpy_mesh_region(x=x, y=y, pm=pm + 1)
-    # Remove overlap between boundary and region
-    region_boundary = setdiff2d_idx(region_boundary, region)
-
-    # Image Region
-    image_region = image[x1 : x2 + 1, y1 : y2 + 1]
-
-    return region, region_boundary, image_region
+    b0 = tf.pow(1 - u, 3) / 6
+    b1 = (3 * tf.pow(u, 3) - 6 * tf.pow(u, 2) + 4) / 6
+    b2 = (-3 * tf.pow(u, 3) + 3 * tf.pow(u, 2) + 3 * u + 1) / 6
+    b3 = tf.pow(u, 3) / 6
+    return tf.transpose(tf.stack([b0, b1, b2, b3]))
 
 
 def inflection_points(x: np.ndarray, y: np.ndarray) -> np.ndarray:
