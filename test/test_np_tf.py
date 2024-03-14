@@ -1,7 +1,6 @@
 # test of numpy and tensorflow related functions
 # Import necessary modules and functions
 import pytest
-from ..deformable.imstat import add
 from typing import Callable
 import numpy as np
 import tensorflow as tf

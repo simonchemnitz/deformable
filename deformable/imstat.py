@@ -182,6 +182,32 @@ def region_intensity_pdf(region: np.ndarray, sigma: float) -> np.ndarray[float]:
     return pdf
 
 
+def initial_model(
+    image_shape: tuple[int], centerpoint: list[int], width: int
+) -> np.ndarray:
+    """
+    Create a square region as initial model
+
+    Parameters:
+    -----------
+
+
+    Returns:
+    --------
+    model: np.ndarray
+        Binary model
+    """
+    assert width % 2 == 1, "Width needs to be odd"
+
+    x, y = centerpoint
+
+    model = np.zeros(shape=image_shape)
+
+    model[y - width : y + width + 1, x - width : x + width + 1] = 1
+
+    return model
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
