@@ -96,3 +96,14 @@ def tf_expand_img(image: tf.Tensor) -> tf.Tensor:
     tf_img: tf.Tensor
         Tensorflow tensor image, shape=(1,height, width,1)
     """
+    ###TODO
+
+
+def gauss(x: tf.Tensor, sigma: float) -> tf.Tensor:
+    """
+    Calculate gaus exponential
+    Exp(-x²/(2*sigma²))
+    """
+    # calculate the fraction -x²/(2*sigma²)
+    fraction = tf.divide(-(x**2), 2 * sigma**2)
+    return tf.exp(fraction)

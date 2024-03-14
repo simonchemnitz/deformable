@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from math import pi
+from misc import gauss
 
 
 def initial_model(
@@ -70,13 +71,23 @@ def prob_density(model: tf.Tensor, image: tf.Tensor, sigma: float) -> tf.Tensor:
     a given model,
 
     Point probability for intensity, i, is given by:
-    P(i|model) = exp[ -( (i-model)**2  ) / (2*sigma**2) ]
+    P(i|model) = exp[ -( (i-model)²  ) / (2*sigma²) ]
 
     Parameters:
     -----------
     model: tf.Tensor,
+        Intial binary model
+
     image: tf.Tensor,
+        Image of interest
+
     sigma: float
+        sigma
+
+    Returns:
+    --------
+    pdf: tf.Tensor
+        Intensity pdf, shape(256)
     """
     # Normalisation constants
     area = tf.reduce_prod(tf.shape(model))
@@ -96,7 +107,14 @@ def prob_density(model: tf.Tensor, image: tf.Tensor, sigma: float) -> tf.Tensor:
 
     # substract intensity i from image
     tilde_image = tf.subtract(intensities, broadcasted_model)
-    return None
+
+    # expnential images
+    exp_img = gauss(tilde_image, sigma=sigma)
+    point_prob = norm_constant * exp_img
+
+    pdf = tf.reduce_sum(point_prob, axis=0)
+
+    return pdf
 
 
 if __name__ == "__main__":
