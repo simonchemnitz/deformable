@@ -1,6 +1,14 @@
 import numpy as np
 import tensorflow as tf
+import skimage.filters as sf
 import math
+
+print("+---------------- +")
+print("| Packages Loaded |")
+print("+---------------- +")
+print()
+print()
+print()
 
 
 def bspline(u: tf.Tensor) -> tf.Tensor:
@@ -116,7 +124,7 @@ def gabor_filter(
     offset=0,
 ) -> tf.Tensor:
     """Return real and imaginary responses to Gabor filter.
-    See numpy.gabor_kernel for more information.
+    See skimage.filters._gabor.gabor_kernel for more information.
 
     Parameters
     ----------
@@ -152,47 +160,12 @@ def gabor_filter(
         Filtered images using the real and imaginary parts of the Gabor filter
         kernel. Images are of the same dimensions as the input one.
     """
-    if sigma_x is None:
-        sigma_x = _sigma_prefactor(bandwidth) / frequency
-    if sigma_y is None:
-        sigma_y = _sigma_prefactor(bandwidth) / frequency
+    g = sf.gabor_kernel(frequency=frequency, theta=theta, sigma_x=sigma, sigma_y=sigma)
 
-    ct = tf.cos(theta)
-    st = tf.sin(theta)
-    x0 = tf.cast(
-        tf.math.ceil(
-            tf.math.maximum(
-                tf.math.abs(n_stds * sigma_x * ct),
-                tf.math.abs(n_stds * sigma_y * st),
-                1,
-            )
-        ),
-        dtype=tf.int32,
-    )
-    y0 = tf.cast(
-        tf.math.ceil(
-            tf.math.maximum(
-                tf.math.abs(n_stds * sigma_y * ct),
-                tf.math.abs(n_stds * sigma_x * st),
-                1,
-            )
-        ),
-        dtype=tf.int32,
-    )
+    g_real = tf.math.real(g)
+    g_imag = tf.math.imag(g)
 
-    y_range = tf.range(-y0, y0 + 1, dtype=tf.float64)
-    x_range = tf.range(-x0, x0 + 1, dtype=tf.float64)
-    y, x = tf.meshgrid(y_range, x_range, indexing="ij", sparse=True)
-    rotx = x * ct + y * st
-    roty = -x * st + y * ct
-
-    g = tf.exp(
-        -0.5 * (rotx**2 / sigma_x**2 + roty**2 / sigma_y**2)
-        + 1j * (2 * tf.constant(np.pi, dtype=tf.float64) * frequency * rotx + offset)
-    )
-    g *= 1 / (2 * tf.constant(np.pi, dtype=tf.float64) * sigma_x * sigma_y)
-
-    return g
+    return g_real, g_imag
 
 
 def gabor(
@@ -209,7 +182,7 @@ def gabor(
 ) -> tf.Tensor:
     """
     Convolve an image with a gabor filter
-    For more information see numpy.gabor
+    For more information see skimage.filters._gabor.gabor_kernel
 
     Parameters
     ----------
@@ -245,21 +218,20 @@ def gabor(
         Filtered images using the real and imaginary parts of the Gabor filter
         kernel. Images are of the same dimensions as the input one.
     """
-    g = gabor_filter(frequency, theta, bandwidth, sigma_x, sigma_y, n_stds, offset)
-
-    g_real = tf.math.real(g)
-    g_imag = tf.math.imag(g)
+    g_real, g_imag = gabor_filter(
+        frequency, theta, bandwidth, sigma_x, sigma_y, n_stds, offset
+    )
 
     filtered_real = tf.nn.convolution(
         tf.expand_dims(image, axis=0),
         tf.expand_dims(tf.expand_dims(g_real, axis=-1), axis=-1),
-        padding=mode.upper(),
+        padding="SAME",
     )[0]
 
     filtered_imag = tf.nn.convolution(
         tf.expand_dims(image, axis=0),
         tf.expand_dims(tf.expand_dims(g_imag, axis=-1), axis=-1),
-        padding=mode.upper(),
+        padding="SAME",
     )[0]
 
     return filtered_real, filtered_imag
@@ -273,3 +245,15 @@ def gauss(x: tf.Tensor, sigma: float) -> tf.Tensor:
     # calculate the fraction -x²/(2*sigma²)
     fraction = tf.divide(-(x**2), 2 * sigma**2)
     return tf.exp(fraction)
+
+
+if __name__ == "__main__":
+    theta = 45.0
+    sigma = 3
+    frequency = 0.25
+    image = np.random.rand(200, 300)
+    image = np_img2_tf(image)
+
+    filted = gabor(
+        image, frequency=frequency, theta=theta, sigma_x=sigma, sigma_y=sigma
+    )
