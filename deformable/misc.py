@@ -165,8 +165,8 @@ def gabor_filter(
         bandwidth=bandwidth,
     )
     # Convert to tensorflow
-    g_real = np.real(np.expand_dims(g, axis=(2, 3)))  # [::-1, ::-1],
-    g_imag = np.imag(np.expand_dims(g, axis=(2, 3)))  # [::-1, ::-1],
+    g_real = np.real(np.expand_dims(g[::-1, ::-1], axis=(2, 3)))  # [::-1, ::-1],
+    g_imag = np.imag(np.expand_dims(g[::-1, ::-1], axis=(2, 3)))  # [::-1, ::-1],
 
     return (g_real, g_imag)
 

@@ -117,16 +117,21 @@ def test_single_gabor():
         offset=offset,
         bandwidth=bandwidth,
     )
-
-    print(sk_real.shape)
-    print(tf_real.shape)
-
-    diff = sk_real - tf_real[0, :, :, 0]
+    # Convert to same shape as skimage result
     tf_real = tf_real[0, :, :, 0]
-    condition = np.allclose(
+    tf_imag = tf_imag[0, :, :, 0]
+
+    # verify real values
+    condition1 = np.allclose(
         sk_real[17 : 200 - 17, 17 : 300 - 17], tf_real[17 : 200 - 17, 17 : 300 - 17]
     )
-    assert condition, "test"
+    # verify imaginary values
+    condition2 = np.allclose(
+        sk_imag[17 : 200 - 17, 17 : 300 - 17], tf_imag[17 : 200 - 17, 17 : 300 - 17]
+    )
+
+    condition = (condition1) & (condition2)
+    assert condition, "test"  # TODO update err message
 
 
 def test_multiple_gabor():
