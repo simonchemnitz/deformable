@@ -108,12 +108,6 @@ def tf_expand_img(image: tf.Tensor) -> tf.Tensor:
     ###TODO
 
 
-def _sigma_prefactor(bandwidth):
-    b = bandwidth
-    # See http://www.cs.rug.nl/~imaging/simplecell.html
-    return 1.0 / math.pi * math.sqrt(math.log(2) / 2.0) * (2.0**b + 1) / (2.0**b - 1)
-
-
 def gabor_filter(
     frequency: float,
     theta=0,
@@ -160,12 +154,21 @@ def gabor_filter(
         Filtered images using the real and imaginary parts of the Gabor filter
         kernel. Images are of the same dimensions as the input one.
     """
-    g = sf.gabor_kernel(frequency=frequency, theta=theta, sigma_x=sigma, sigma_y=sigma)
+    # Extract skimage filter
+    g = sf.gabor_kernel(
+        frequency=frequency,
+        theta=theta,
+        sigma_x=sigma_x,
+        sigma_y=sigma_y,
+        n_stds=n_stds,
+        offset=offset,
+        bandwidth=bandwidth,
+    )
+    # Convert to tensorflow
+    g_real = np.real(np.expand_dims(g, axis=(2, 3)))  # [::-1, ::-1],
+    g_imag = np.imag(np.expand_dims(g, axis=(2, 3)))  # [::-1, ::-1],
 
-    g_real = tf.math.real(g)
-    g_imag = tf.math.imag(g)
-
-    return g_real, g_imag
+    return (g_real, g_imag)
 
 
 def gabor(
@@ -222,19 +225,24 @@ def gabor(
         frequency, theta, bandwidth, sigma_x, sigma_y, n_stds, offset
     )
 
-    filtered_real = tf.nn.convolution(
-        tf.expand_dims(image, axis=0),
-        tf.expand_dims(tf.expand_dims(g_real, axis=-1), axis=-1),
-        padding="SAME",
-    )[0]
+    filtered_real = tf.nn.convolution(image, g_real, padding="SAME")
 
-    filtered_imag = tf.nn.convolution(
-        tf.expand_dims(image, axis=0),
-        tf.expand_dims(tf.expand_dims(g_imag, axis=-1), axis=-1),
-        padding="SAME",
-    )[0]
+    filtered_imag = tf.nn.convolution(image, g_imag, padding="SAME")
 
-    return filtered_real, filtered_imag
+    return (filtered_real, filtered_imag)
+
+
+def multiple_gabor(image: tf.Tensor, gabor_list: list[tuple[tf.Tensor]]) -> tf.Tensor:
+    """TODO
+    Convolve an image with multiple gabor filters
+    """
+    # Extract the real and imaginary gabor filters
+
+    g_real = np.concatenate([g[0] for g in gabor_list], axis=3)
+    g_imag = np.concatenate([g[1] for g in gabor_list], axis=3)
+    filtered_real = tf.nn.convolution(input=image, filters=g_real, padding="SAME")
+    filtered_imag = tf.nn.convolution(input=image, filters=g_imag, padding="SAME")
+    return (filtered_real, filtered_imag)
 
 
 def gauss(x: tf.Tensor, sigma: float) -> tf.Tensor:
