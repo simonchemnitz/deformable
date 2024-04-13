@@ -136,3 +136,38 @@ def bhattachayya_distance(p1: tf.Tensor, p2: tf.Tensor) -> tf.Tensor:
     distributions, p1 & p2, B(p1|p2)
     """
     return -tf.math.log(rho(p1, p2))
+
+
+def region_pdf(image: tf.Tensor, region: tf.Tensor, sigma: float) -> tf.Tensor:
+    """
+    Calculate the intensity pdf for a given region
+    """
+    # Normalisation constant
+    c = 1 / (2 * np.pi * sigma * tf.reduce_sum(region))
+
+    # Apply region
+    masked_image = image * region
+
+    # Tile image
+    new_shape = (256,) + image.shape[1:]
+    tiled_image = tf.broadcast_to(masked_image, new_shape)
+
+    intensities = np.expand_dims(tf.range(256), axis=(1, 2, 3))
+
+    # Calculate intensity difference
+    diff_map = tiled_image - intensities
+
+    # calculate numerator
+    numerator = tf.pow(diff_map, 2)
+    numerator = -numerator / (2 * sigma**2)
+
+    # Exponential map
+    exp_map = tf.exp(numerator)
+
+    # Calculate integral
+    integral = tf.reduce_sum(exp_map, axis=0)
+
+    # normalise
+    probdist = integral * c
+
+    return probdist

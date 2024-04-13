@@ -139,4 +139,4 @@ def test_multiple_gabor():
     test that multiple gabor produces same result as
     multiple single gabors
     """
-    assert True, "test"
+    # TODO complete

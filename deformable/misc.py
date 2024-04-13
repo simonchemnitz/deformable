@@ -105,7 +105,7 @@ def tf_expand_img(image: tf.Tensor) -> tf.Tensor:
     tf_img: tf.Tensor
         Tensorflow tensor image, shape=(1,height, width,1)
     """
-    ###TODO
+    return tf.expand_dims(tf.expand_dims(image, axis=0), axis=-1)
 
 
 def gabor_filter(
