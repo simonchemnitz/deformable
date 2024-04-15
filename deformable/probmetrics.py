@@ -5,7 +5,7 @@ import tensorflow as tf
 def mu_t_np(p1: np.ndarray, p2: np.ndarray, t: float) -> float:
     """
     Calculate the mu value in chernoff information
-    µ(t) = \integral p1(i)^(1-t) * p_2(i)^t di
+    µ(t) = $integral p1(i)^(1-t) * p_2(i)^t di
 
     Parameters:
     -----------
@@ -81,7 +81,7 @@ def chernoff_information_np(p1: np.ndarray, p2: np.ndarray, n_points=500) -> flo
 
     max_{0<=t<=1} -log( µ(t) )
     with:
-    µ(t) = \integral p1(i)^(1-t) * p_2(i)^t di
+    µ(t) = $integral p1(i)^(1-t) * p_2(i)^t di
 
 
     This is a measure of distance between two probability densities
@@ -143,15 +143,16 @@ def region_pdf(image: tf.Tensor, region: tf.Tensor, sigma: float) -> tf.Tensor:
     Calculate the intensity pdf for a given region
     """
     # Normalisation constant
-    c = 1 / (2 * np.pi * sigma * tf.reduce_sum(region))
+    c = 1 / (2 * np.pi * (sigma**2) * tf.reduce_sum(region))
 
     # Apply region
     masked_image = image * region
 
-    # Tile image
+    # Broadcast image
     new_shape = (256,) + image.shape[1:]
     tiled_image = tf.broadcast_to(masked_image, new_shape)
 
+    # Intensities to subtract from the image
     intensities = np.expand_dims(tf.range(256), axis=(1, 2, 3))
 
     # Calculate intensity difference
@@ -165,7 +166,7 @@ def region_pdf(image: tf.Tensor, region: tf.Tensor, sigma: float) -> tf.Tensor:
     exp_map = tf.exp(numerator)
 
     # Calculate integral
-    integral = tf.reduce_sum(exp_map, axis=0)
+    integral = tf.reduce_sum(exp_map, axis=(1, 2, 3))
 
     # normalise
     probdist = integral * c
