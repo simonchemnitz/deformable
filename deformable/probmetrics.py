@@ -2,80 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 
-def mu_t_np(p1: np.ndarray, p2: np.ndarray, t: float) -> float:
-    """
-    Calculate the mu value in chernoff information
-    µ(t) = $integral p1(i)^(1-t) * p_2(i)^t di
-
-    Parameters:
-    -----------
-    p1: np.ndarray
-        Image pdf
-
-    p2: np.ndarray
-        Image pdf
-    t: float
-    """
-    # Verify input
-    assert_msg = f"""
-    Length of p1 or p2 is not equal to 256:
-    len p1: {len(p1)}
-    len p2: {len(p2)} 
-    """
-    assert len(p1) == 256 and len(p2) == 256, assert_msg
-    # Calculate powers
-    p1_values = p1 ** (1 - t)
-    p2_values = p2 ** (t)
-
-    # Calculate product
-    prod = p1_values * p2_values
-
-    # Calculate integral (sum)
-    integral = np.sum(prod)
-
-    return integral
-
-
-def rho_np(p1: np.ndarray, p2: np.ndarray) -> float:
-    """
-    Special case of µ with t=0.5
-    Parameters:
-    -----------
-    p1: np.ndarray
-        Image pdf
-
-    p2: np.ndarray
-        Image pdf
-
-    Returns:
-    --------
-    µ(0.5)
-    """
-    return mu_t_np(p1, p2, 0.5)
-
-
-def bhattachayya_distance_np(p1: np.ndarray, p2: np.ndarray) -> float:
-    """
-    Special case of Chernoff information with t=0.5
-
-    Parameters:
-    -----------
-    p1: np.ndarray
-        Image pdf
-
-    p2: np.ndarray
-        Image pdf
-
-    Returns:
-    --------
-    B: float
-        The bhattachayya distance
-        between p1 and p2
-    """
-    return -np.log(rho_np(p1, p2))
-
-
-def chernoff_information_np(p1: np.ndarray, p2: np.ndarray, n_points=500) -> float:
+def chernoff_information(p1: np.ndarray, p2: np.ndarray, n_points=500):
     """
     Calculate the chernoff information given by:
 
@@ -103,31 +30,34 @@ def chernoff_information_np(p1: np.ndarray, p2: np.ndarray, n_points=500) -> flo
     chernoff: float
         The Chernoff information
     """
-    # List og t values to evaluate µ(t)
-    ts = np.linspace(start=0, stop=1, num=n_points)
+    # t values
+    ts = tf.linspace(start=0.00001, stop=1, num=n_points)
 
-    # µ(t) for each t in ts
-    vals = np.array(list(map(lambda t: mu_t_np(p1, p2, t), ts)))
-    log_vals = -np.log(vals)
+    # Calculate µ(t) for each t
+    mu_result = tf.map_fn(lambda t: mu_t(p1, p2, t), ts)
 
-    # Calculate chernoff information (max)
-    chernoff = np.max(log_vals)
+    # apply -log()
+    result = tf.map_fn(lambda mu: -tf.math.log(mu), mu_result)
 
-    return chernoff
+    return tf.math.reduce_min(result)
 
 
-def mu_t(p1: tf.Tensor, p2: tf.Tensor, t: float) -> tf.Tensor:
+def mu_t(p1: tf.Tensor, p2: tf.Tensor, t: tf.Tensor) -> tf.Tensor:
     """
     Calculate mu  for a tensor
     """
-    return tf.reduce_sum(tf.pow(tf.multiply(p1, p2), t))
+    pow1 = tf.pow(p1, t)
+    pow2 = tf.pow(p2, 1 - t)
+    integral = tf.reduce_sum(tf.multiply(pow1, pow2))
+
+    return integral
 
 
 def rho(p1: tf.Tensor, p2: tf.Tensor) -> tf.Tensor:
     """
     Calculate rho
     """
-    return mu_t(p1=p1, p2=p2, t=0.5)
+    return tf.reduce_sum(tf.math.sqrt(tf.multiply(p1, p2)))
 
 
 def bhattachayya_distance(p1: tf.Tensor, p2: tf.Tensor) -> tf.Tensor:
@@ -143,8 +73,9 @@ def region_pdf(image: tf.Tensor, region: tf.Tensor, sigma: float) -> tf.Tensor:
     Calculate the intensity pdf for a given region
     """
     # Normalisation constant
-    c = 1 / (2 * np.pi * (sigma**2) * tf.reduce_sum(region))
-
+    volume = 1 / tf.reduce_sum(region)
+    c = tf.math.sqrt(1 / (2 * np.pi * (sigma**2)))
+    norm_constant = volume * c
     # Apply region
     masked_image = image * region
 
@@ -169,6 +100,6 @@ def region_pdf(image: tf.Tensor, region: tf.Tensor, sigma: float) -> tf.Tensor:
     integral = tf.reduce_sum(exp_map, axis=(1, 2, 3))
 
     # normalise
-    probdist = integral * c
+    probdist = integral * norm_constant
 
     return probdist
