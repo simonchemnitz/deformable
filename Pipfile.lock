@@ -1189,14 +1189,6 @@
             "markers": "python_version >= '3.8'",
             "version": "==2.2.1"
         },
-        "werkzeug": {
-            "hashes": [
-                "sha256:507e811ecea72b18a404947aded4b3390e1db8f826b494d76550ef45bb3b1dcc",
-                "sha256:90a285dc0e42ad56b34e696398b8122ee4c681833fb35b8334a095d82c56da10"
-            ],
-            "markers": "python_version >= '3.8'",
-            "version": "==3.0.1"
-        },
         "wheel": {
             "hashes": [
                 "sha256:177f9c9b0d45c47873b619f5b650346d632cdc35fb5e4d25058e09c9e581433d",
