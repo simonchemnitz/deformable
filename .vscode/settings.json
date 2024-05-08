@@ -1,0 +1,8 @@
+{
+    "python.terminal.activateEnvironment": true,
+    "editor.formatOnSave": true,
+    "[python]": {
+        "editor.formatOnSave": true
+    },
+    "python.formatting.provider": "black"
+}
