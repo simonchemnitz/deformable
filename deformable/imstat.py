@@ -3,10 +3,13 @@ from scipy.spatial.distance import cdist
 from skimage import io, util
 from skimage.filters import gabor
 import skimage.morphology as morph
+import tensorflow as tf
 
 
 def E_d_map(
-    image_shape: tuple[int], boundary_indices: list[int], normalise=False
+    image: np.ndarray,
+    boundary_indices: np.ndarray,
+    normalise=False,
 ) -> np.ndarray:
     """
     Calculate the depth map to the region
@@ -25,7 +28,7 @@ def E_d_map(
         Array of shape(N,K)
     """
     # Indices of the image
-    img_indices = np.indices(image_shape).reshape(2, -1).T
+    img_indices = np.indices(image.shape).reshape(2, -1).T
 
     # Calculate the euclidean distance for each index to
     # each boundary point
@@ -44,7 +47,7 @@ def E_d_map(
     return distance_map
 
 
-def distance_map(image: np.ndarray, model: np.ndarray) -> np.ndarray:
+def distance_map(model: np.ndarray) -> np.ndarray:
     """
     Calculate distance map for a given model
 
@@ -71,17 +74,18 @@ def boundary(model: np.ndarray) -> np.ndarray:
     """
     Return the boundary of a model
     """
-    return morph.binary_dilation(model,footprint=np.ones(shape=(3,3))) - model
+    return morph.binary_dilation(model, footprint=np.ones(shape=(3, 3))) - model
 
 
-def boundary_indices(model_boundary:np.ndarray)->list[int]:
+def boundary_indices(model_boundary: np.ndarray) -> list[int]:
     """
     Given a model boundary map, return the indices
     """
-    idx = np.where(model_boundary==1)
-    idx = np.stack(idx).reshape(2,-1).T
+    idx = np.where(model_boundary == 1)
+    idx = np.stack(idx).reshape(2, -1).T
 
     return idx
+
 
 def volume(model: np.ndarray) -> int:
     """
@@ -90,7 +94,7 @@ def volume(model: np.ndarray) -> int:
     return np.sum(model, dtype=int)
 
 
-def bspline(u: float) -> list[float]:
+def np_bspline(u: np.ndarray) -> np.ndarray[float]:
     """
     Caclulate b spline values
     """
@@ -99,13 +103,33 @@ def bspline(u: float) -> list[float]:
     b2 = (-3 * u**3 + 3 * u**2 + 3 * u + 1) / 6
     b3 = (u**3) / 6
 
-    return [b0, b1, b2, b3]
+    return np.vstack((b0, b1, b2, b3)).T
+
+
+def bspline(u: tf.Tensor) -> tf.Tensor:
+    """
+    Calculate bspline for a tensor
+    Parameters:
+    -----------
+    u: tf.Tensor
+        Input tensor
+
+    Returns:
+    --------
+    b: tf.Tensor
+        Output tensor of bspline values
+    """
+    b0 = tf.pow(1 - u, 3) / 6
+    b1 = (3 * tf.pow(u, 3) - 6 * tf.pow(u, 2) + 4) / 6
+    b2 = (-3 * tf.pow(u, 3) + 3 * tf.pow(u, 2) + 3 * u + 1) / 6
+    b3 = tf.pow(u, 3) / 6
+    return tf.transpose(tf.stack([b0, b1, b2, b3]))
 
 
 def region_point_pdf(region: np.ndarray, intensity_i: int, sigma: float) -> float:
     """
     Calculate phi point probability for a given intensity i:
-    P(i|\Phi_M)
+    P(i|Phi_M)
 
     Parameters:
     -----------
@@ -157,7 +181,10 @@ def region_intensity_pdf(region: np.ndarray, sigma: float) -> np.ndarray[float]:
     ]
     return pdf
 
-def initial_model(image_shape:tuple[int], centerpoint:list[int], width:int)->np.ndarray:
+
+def initial_model(
+    image_shape: tuple[int], centerpoint: list[int], width: int
+) -> np.ndarray:
     """
     Create a square region as initial model
 
@@ -170,40 +197,37 @@ def initial_model(image_shape:tuple[int], centerpoint:list[int], width:int)->np.
     model: np.ndarray
         Binary model
     """
-    assert width%2 ==1, "Width needs to be odd"
+    assert width % 2 == 1, "Width needs to be odd"
 
-    x,y = centerpoint
+    x, y = centerpoint
 
     model = np.zeros(shape=image_shape)
 
-    model[y-width:y+width+1, x-width:x+width+1] = 1
+    model[y - width : y + width + 1, x - width : x + width + 1] = 1
 
     return model
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    
-    #Image
+
+    # Image
     image = np.random.random(size=(1024, 1024))
 
-    #Model
-    model = initial_model(image_shape=image.shape, centerpoint=[700,250], width=101)
-    #Model boundary
+    # Model
+    model = initial_model(image_shape=image.shape, centerpoint=[700, 250], width=101)
+    # Model boundary
     model_boundary = boundary(model)
 
-    #distance map
+    # distance map
     d_map = distance_map(image=image, model=model)
 
-
-
-    #Plot results
+    # Plot results
     fig, axis = plt.subplots(nrows=2, ncols=2)
     im0 = axis[0, 0].imshow(image, cmap="gray")
     im1 = axis[0, 1].imshow(model, cmap="jet")
     im2 = axis[1, 0].imshow(model_boundary, cmap="jet")
     im3 = axis[1, 1].imshow(d_map, cmap="jet")
-
 
     # Create colorbars for each subplot
     fig.colorbar(im0, ax=axis[0, 0])
@@ -211,14 +235,13 @@ if __name__=="__main__":
     fig.colorbar(im2, ax=axis[1, 0])
     fig.colorbar(im3, ax=axis[1, 1])
 
+    # Titles
+    axis[0, 0].set_title("Original image")
+    axis[0, 1].set_title("Model")
+    axis[1, 0].set_title("Model boundary")
+    axis[1, 1].set_title("Distance map")
 
-    #Titles
-    axis[0,0].set_title("Original image")
-    axis[0,1].set_title("Model")
-    axis[1,0].set_title("Model boundary")
-    axis[1,1].set_title("Distance map")
-
-    #Remove axis
+    # Remove axis
     for ax in axis.ravel():
         ax.axis("off")
 

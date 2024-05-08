@@ -1,4 +1,5 @@
-name: Run pytest
+name: Run pytest and Check Black Formatting
+
 
 on: [push, pull_request]
 
@@ -26,3 +27,24 @@ jobs:
     - name: Run pytest
       run: |
         pipenv run pytest
+
+
+  check_formatting:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.x
+
+    - name: Install Black
+      run: pip install black
+
+    - name: Check code formatting
+      run: black --check .
+
+

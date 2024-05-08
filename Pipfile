@@ -9,6 +9,8 @@ scipy = "*"
 black = "*"
 tensorflow = "*"
 scikit-image = "*"
+pytest = "*"
+matplotlib = "*"
 
 [dev-packages]
 
